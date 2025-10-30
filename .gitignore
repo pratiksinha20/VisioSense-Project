@@ -1,0 +1,7 @@
+# Python Virtual Environments
+.venv/
+visiosense_env/
+
+# Python Cache
+__pycache__/
+*.pyc
