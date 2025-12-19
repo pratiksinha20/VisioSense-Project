@@ -34,6 +34,7 @@ import os
 import threading
 import webbrowser
 from scipy.spatial import distance as dist
+from ultralytics import YOLO
 
 # Try to import speech recognition, if not available, disable voice features
 try:
@@ -51,6 +52,17 @@ pyautogui.FAILSAFE = False
 mp_drawing = mp.solutions.drawing_utils
 mp_hands = mp.solutions.hands
 mp_face_mesh = mp.solutions.face_mesh
+
+# Load YOLOv8 model globally
+try:
+    print("Loading YOLOv8 model...")
+    yolo_model = YOLO('yolov8n.pt')
+    print("✓ YOLOv8 model loaded!")
+    OBJECT_DETECTION_AVAILABLE = True
+except Exception as e:
+    print(f"⚠️  YOLOv8 model not available: {e}")
+    yolo_model = None
+    OBJECT_DETECTION_AVAILABLE = False
 
 # ===== UTILITY FUNCTIONS =====
 def dist(a, b):
@@ -146,6 +158,55 @@ def detect_facial_expression(landmarks):
         return "Sad"
     else:
         return "Normal"
+
+def process_object_detection(frame):
+    """Run YOLOv8 object detection and draw results on frame."""
+    detected_objects = []
+    
+    if not OBJECT_DETECTION_AVAILABLE or yolo_model is None:
+        return frame, detected_objects
+    
+    try:
+        # Run YOLO inference
+        results = yolo_model(frame, conf=0.5)
+        
+        # Draw detections on frame
+        for result in results:
+            boxes = result.boxes
+            
+            for box in boxes:
+                x1, y1, x2, y2 = box.xyxy[0]
+                x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+                
+                confidence = box.conf[0]
+                class_id = int(box.cls[0])
+                class_name = result.names[class_id]
+                
+                # Store detected object
+                detected_objects.append({
+                    'name': class_name,
+                    'confidence': float(confidence)
+                })
+                
+                # Draw bounding box (cyan color)
+                cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 255, 0), 2)
+                
+                # Prepare label
+                label = f"{class_name}: {confidence:.2f}"
+                label_size, _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)
+                label_y = y1 - 10 if y1 - 10 > 20 else y1 + 25
+                
+                # Draw label background
+                cv2.rectangle(frame, (x1, label_y - label_size[1] - 4), 
+                             (x1 + label_size[0] + 4, label_y + 4), (255, 255, 0), -1)
+                
+                # Draw label text
+                cv2.putText(frame, label, (x1, label_y), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)
+    except Exception as e:
+        print(f"Error in object detection: {e}")
+    
+    return frame, detected_objects
 
 def voice_command_handler():
     """Handle voice commands in a separate thread."""
@@ -314,6 +375,9 @@ def main(web_mode=False):
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             hand_results = hands.process(rgb)
             face_results = face_mesh.process(rgb)
+            
+            # Run object detection
+            frame, detected_objects = process_object_detection(frame)
             
             # Get hand landmarks and handedness
             multi_hand_landmarks = hand_results.multi_hand_landmarks

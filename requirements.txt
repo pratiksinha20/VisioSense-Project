@@ -5,3 +5,4 @@ pyautogui==0.9.54
 scipy==1.16.2
 SpeechRecognition==3.10.0
 PyAudio==0.2.11
+ultralytics==8.9.67
