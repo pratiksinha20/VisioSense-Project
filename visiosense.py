@@ -64,6 +64,16 @@ except Exception as e:
     yolo_model = None
     OBJECT_DETECTION_AVAILABLE = False
 
+# Shared variables for web configuration
+settings = {
+    'smoothing': 40.0,
+    'sensitivity': 70.0,
+    'drawingMode': True
+}
+web_running = True
+status_callback = None
+frame_callback = None
+
 # ===== UTILITY FUNCTIONS =====
 def dist(a, b):
     """Calculate Euclidean distance between two points."""
@@ -264,6 +274,9 @@ def check_camera():
 # ===== MAIN APPLICATION =====
 def main(web_mode=False):
     """Main application function."""
+    global web_running
+    web_running = True
+    
     if not web_mode:
         print("VisioSense - Hand Gesture Control System")
         print("========================================")
@@ -272,7 +285,8 @@ def main(web_mode=False):
     camera_available, frame_shape = check_camera()
     if not camera_available:
         print("❌ Error: Camera not found or not accessible!")
-        input("Press Enter to exit...")
+        if not web_mode:
+            input("Press Enter to exit...")
         return
     
     print("✅ Camera detected successfully!")
@@ -362,6 +376,15 @@ def main(web_mode=False):
             if not ret:
                 print("❌ Failed to read frame from camera")
                 break
+            
+            # Dynamically read settings from web configuration
+            smoothing_val = settings['smoothing']
+            sensitivity_val = settings['sensitivity']
+            drawing_mode_val = settings['drawingMode']
+            
+            # Map settings to internal parameters
+            factor = max(0.05, 1.0 - (smoothing_val / 100.0))
+            pinch_threshold = 0.02 + (sensitivity_val / 100.0) * 0.04
             
             # Flip frame horizontally for mirror effect
             frame = cv2.flip(frame, 1)
@@ -497,8 +520,8 @@ def main(web_mode=False):
                     raw_y = np.interp(index_tip.y, [margin, 1 - margin], [0, screen_h])
                     
                     # Smooth cursor movement
-                    mouse_x = prev_mouse_x + (raw_x - prev_mouse_x) * 0.4
-                    mouse_y = prev_mouse_y + (raw_y - prev_mouse_y) * 0.4
+                    mouse_x = prev_mouse_x + (raw_x - prev_mouse_x) * factor
+                    mouse_y = prev_mouse_y + (raw_y - prev_mouse_y) * factor
                     
                     try:
                         pyautogui.moveTo(mouse_x, mouse_y)
@@ -585,7 +608,7 @@ def main(web_mode=False):
                         scroll_accum = 0.0
                     
                     # Index pointing -> draw on canvas (ONLY single index finger)
-                    if stable_gesture == "Index Pointing":
+                    if stable_gesture == "Index Pointing" and drawing_mode_val:
                         ix, iy = int(index_tip.x * w), int(index_tip.y * h)
                         cv2.circle(frame, (ix, iy), 12, (0, 0, 255), cv2.FILLED)
                         
@@ -634,23 +657,43 @@ def main(web_mode=False):
                 cv2.putText(frame, "Namaskar detected - Closing...", 
                            (w//2 - 200, h//2), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 0, 255), 3)
             
+            # Trigger web callbacks if set
+            if web_mode:
+                if frame_callback:
+                    frame_callback(frame)
+                if status_callback:
+                    status_callback(
+                        "Mouse Mode" if mouse_mode else "Whiteboard Mode",
+                        stable_gesture or 'None',
+                        finger_count,
+                        current_expression or 'Normal',
+                        head_angle
+                    )
+            
             # Display frame
-            cv2.imshow("VisioSense - Hand Gesture Control", frame)
+            if not web_mode:
+                cv2.imshow("VisioSense - Hand Gesture Control", frame)
+                
+                # Set window to be always on top
+                cv2.setWindowProperty("VisioSense - Hand Gesture Control", cv2.WND_PROP_TOPMOST, 1)
             
-            # Set window to be always on top
-            cv2.setWindowProperty("VisioSense - Hand Gesture Control", cv2.WND_PROP_TOPMOST, 1)
-            
-            # Handle key presses
-            key = cv2.waitKey(1) & 0xFF
-            if key == ord('m'):  # Press 'm' to minimize
-                cv2.setWindowProperty("VisioSense - Hand Gesture Control", cv2.WND_PROP_FULLSCREEN, 
-                                   cv2.WINDOW_MINIMIZED)
-            elif key in (27, ord('q')) or close_app:
-                break
+            # Handle key presses and exits
+            key = cv2.waitKey(1) & 0xFF if not web_mode else 0xFF
+            if not web_mode:
+                if key == ord('m'):  # Press 'm' to minimize
+                    cv2.setWindowProperty("VisioSense - Hand Gesture Control", cv2.WND_PROP_FULLSCREEN, 
+                                       cv2.WINDOW_MINIMIZED)
+                elif key in (27, ord('q')) or close_app:
+                    break
+            else:
+                if close_app or not web_running:
+                    break
+                time.sleep(0.01)  # small sleep to prevent 100% CPU
     
     # Cleanup
     cap.release()
-    cv2.destroyAllWindows()
+    if not web_mode:
+        cv2.destroyAllWindows()
     print("👋 VisioSense closed successfully!")
 
 if __name__ == "__main__":

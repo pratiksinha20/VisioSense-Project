@@ -1,1 +1,275 @@
- 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VisioSense - Advanced Gesture Control System</title>
+    <meta name="description" content="Control your system using advanced computer vision hand gestures, facial expression analysis, and object detection.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Ambient glowing backgrounds -->
+    <div class="ambient-glow bg-blue"></div>
+    <div class="ambient-glow bg-purple"></div>
+
+    <div class="app-container">
+        <!-- Main Header -->
+        <header class="app-header">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <i class="fas fa-hand-pointer pulse-animation"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>VisioSense</h1>
+                    <p class="tagline">Neural Human-Computer Interaction</p>
+                </div>
+            </div>
+            <div class="header-controls">
+                <div id="connectionStatus" class="status-pill status-disconnected">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Disconnected</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Dashboard Workspace -->
+        <main class="dashboard-grid">
+            
+            <!-- Left Side: Live Stream & Primary Controls -->
+            <section class="workspace-section stream-section glass-panel">
+                <div class="section-header">
+                    <h2><i class="fas fa-video"></i> Live Stream Feed</h2>
+                    <div class="stream-stats">
+                        <span id="fpsDisplay" class="stat-badge">FPS: 0</span>
+                        <span id="resolutionDisplay" class="stat-badge">640x480</span>
+                    </div>
+                </div>
+                
+                <div class="video-container">
+                    <div id="cameraFeedOffline" class="offline-placeholder">
+                        <div class="offline-content">
+                            <i class="fas fa-camera-slash offline-icon"></i>
+                            <h3>Camera Feed Stopped</h3>
+                            <p>Click "Start Camera" below to initiate the neural feedback system.</p>
+                        </div>
+                    </div>
+                    <div id="videoStreamContainer" class="video-feed-wrapper hidden">
+                        <!-- Video stream image will be injected here -->
+                    </div>
+                </div>
+
+                <div class="control-actions">
+                    <button id="btnStart" class="btn btn-primary" onclick="startCamera()">
+                        <i class="fas fa-play"></i> Start Camera
+                    </button>
+                    <button id="btnStop" class="btn btn-danger" onclick="stopCamera()" disabled>
+                        <i class="fas fa-stop"></i> Stop Camera
+                    </button>
+                    <button id="btnMinimize" class="btn btn-secondary" onclick="minimizeWindow()">
+                        <i class="fas fa-window-minimize"></i> Minimize
+                    </button>
+                </div>
+            </section>
+
+            <!-- Right Side: Telemetry Metrics & Configuration -->
+            <section class="workspace-section sidebar-section">
+                
+                <!-- Telemetry Glass Panel -->
+                <div class="telemetry-panel glass-panel">
+                    <div class="section-header">
+                        <h2><i class="fas fa-chart-line"></i> Real-time Telemetry</h2>
+                    </div>
+                    
+                    <div class="metrics-grid">
+                        <!-- Mode Telemetry -->
+                        <div class="metric-card">
+                            <div class="metric-icon mode-icon-bg">
+                                <i class="fas fa-mouse-pointer" id="metricModeIcon"></i>
+                            </div>
+                            <div class="metric-data">
+                                <span class="metric-label">Active Mode</span>
+                                <h3 id="telemetryMode" class="metric-value">Offline</h3>
+                            </div>
+                        </div>
+
+                        <!-- Gesture Telemetry -->
+                        <div class="metric-card">
+                            <div class="metric-icon gesture-icon-bg">
+                                <i class="fas fa-hand-sparkles"></i>
+                            </div>
+                            <div class="metric-data">
+                                <span class="metric-label">Detected Gesture</span>
+                                <h3 id="telemetryGesture" class="metric-value">None</h3>
+                            </div>
+                        </div>
+
+                        <!-- Fingers Telemetry -->
+                        <div class="metric-card">
+                            <div class="metric-icon fingers-icon-bg">
+                                <i class="fas fa-hand"></i>
+                            </div>
+                            <div class="metric-data">
+                                <span class="metric-label">Fingers Tracked</span>
+                                <h3 id="telemetryFingers" class="metric-value">0</h3>
+                            </div>
+                        </div>
+
+                        <!-- Expression Telemetry -->
+                        <div class="metric-card">
+                            <div class="metric-icon expression-icon-bg">
+                                <i class="fas fa-smile"></i>
+                            </div>
+                            <div class="metric-data">
+                                <span class="metric-label">Facial Expression</span>
+                                <h3 id="telemetryExpression" class="metric-value">Normal</h3>
+                            </div>
+                        </div>
+
+                        <!-- Head Angle Telemetry -->
+                        <div class="metric-card span-2">
+                            <div class="metric-icon angle-icon-bg">
+                                <i class="fas fa-compass" id="compassIcon"></i>
+                            </div>
+                            <div class="metric-data-row">
+                                <div class="metric-data">
+                                    <span class="metric-label">Head Tilt Angle</span>
+                                    <h3 id="telemetryHeadAngle" class="metric-value">0.0°</h3>
+                                </div>
+                                <div class="angle-bar-container">
+                                    <div id="angleBar" class="angle-bar" style="width: 50%;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings & Endpoint configuration panel -->
+                <div class="settings-panel glass-panel">
+                    <div class="section-header">
+                        <h2><i class="fas fa-sliders-h"></i> System Settings</h2>
+                    </div>
+                    
+                    <div class="settings-form">
+                        <!-- Cursor Smoothing -->
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <label for="rangeSmoothing">Cursor Smoothing</label>
+                                <span id="valSmoothing">40%</span>
+                            </div>
+                            <input type="range" id="rangeSmoothing" min="1" max="100" value="40" class="custom-slider">
+                        </div>
+
+                        <!-- Gesture Sensitivity -->
+                        <div class="setting-item">
+                            <div class="setting-info">
+                                <label for="rangeSensitivity">Gesture Sensitivity</label>
+                                <span id="valSensitivity">70%</span>
+                            </div>
+                            <input type="range" id="rangeSensitivity" min="1" max="100" value="70" class="custom-slider">
+                        </div>
+
+                        <!-- Drawing Mode Toggle -->
+                        <div class="setting-item toggle-item">
+                            <label for="checkDrawingMode" class="toggle-label">
+                                <span class="toggle-text">Enable Drawing Mode</span>
+                                <span class="toggle-sub">Draw on whiteboard index finger pointing</span>
+                            </label>
+                            <div class="switch-wrapper">
+                                <label class="switch">
+                                    <input type="checkbox" id="checkDrawingMode" checked>
+                                    <span class="slider round"></span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <hr class="settings-divider">
+
+                        <!-- Deployment backend endpoint configuration -->
+                        <div class="setting-item endpoint-item">
+                            <label for="inputBackendUrl">Python Backend Endpoint</label>
+                            <div class="input-with-button">
+                                <input type="url" id="inputBackendUrl" placeholder="http://localhost:5001" value="http://localhost:5001">
+                                <button id="btnSaveEndpoint" class="btn-icon" onclick="saveBackendEndpoint()" title="Save Endpoint">
+                                    <i class="fas fa-save"></i>
+                                </button>
+                            </div>
+                            <span class="setting-help">URL of your running VisioSense Flask server.</span>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+        </main>
+
+        <!-- Bottom section: Guide and Event Log terminal -->
+        <section class="footer-grid">
+            <!-- Gesture Guide Card -->
+            <div class="guide-panel glass-panel">
+                <div class="section-header">
+                    <h2><i class="fas fa-info-circle"></i> Quick Gesture Guide</h2>
+                </div>
+                <div class="guide-grid">
+                    <div class="guide-card">
+                        <div class="guide-icon"><i class="fas fa-hand-fist"></i></div>
+                        <div class="guide-desc">
+                            <h4>Fist</h4>
+                            <p>Activate Mouse Mode (cursor movement)</p>
+                        </div>
+                    </div>
+                    <div class="guide-card">
+                        <div class="guide-icon"><i class="fas fa-hand"></i></div>
+                        <div class="guide-desc">
+                            <h4>Open Hand</h4>
+                            <p>Draw Mode / Clear whiteboard canvas</p>
+                        </div>
+                    </div>
+                    <div class="guide-card">
+                        <div class="guide-icon"><i class="fas fa-hand-point-up"></i></div>
+                        <div class="guide-desc">
+                            <h4>Point Index</h4>
+                            <p>Draw on screen in whiteboard mode</p>
+                        </div>
+                    </div>
+                    <div class="guide-card">
+                        <div class="guide-icon"><i class="fas fa-hand-peace"></i></div>
+                        <div class="guide-desc">
+                            <h4>Peace Sign</h4>
+                            <p>Two-Finger scrolling & click controls</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Terminal Logger -->
+            <div class="console-panel glass-panel">
+                <div class="section-header">
+                    <h2><i class="fas fa-terminal"></i> Event Log Console</h2>
+                    <button class="btn-clear-console" onclick="clearConsoleLog()" title="Clear Console">
+                        <i class="fas fa-trash-alt"></i> Clear
+                    </button>
+                </div>
+                <div id="consoleLog" class="console-log-body">
+                    <div class="console-line system-msg">[SYSTEM] VisioSense UI initialised. Ready for connection.</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- App Footer -->
+        <footer class="app-footer">
+            <p>VisioSense Neural Interface System &copy; 2026. Made with ❤️ by Pratik Kumar Sinha.</p>
+        </footer>
+    </div>
+
+    <!-- SocketIO Client Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <!-- App Logic -->
+    <script src="app.js"></script>
+</body>
+</html>
