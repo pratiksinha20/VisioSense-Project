@@ -3,6 +3,13 @@
 VisioSense is a real-time computer vision system that uses **hand gestures, facial expressions, and object detection** to control and interact with a computer using a webcam.  
 The project combines **MediaPipe**, **OpenCV**, and **YOLOv8 (pre-trained model with TensorFlow support)** for intelligent, hands-free interaction.
 
+
+Terminal command:-
+
+.venv\Scripts\python.exe app.py
+
+.venv\Scripts\python.exe visiosense.py
+
 ---
 
 ## Quick Setup
