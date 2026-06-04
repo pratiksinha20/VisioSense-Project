@@ -4,8 +4,10 @@ VisioSense is a real-time computer vision system that uses **hand gestures, faci
 The project combines **MediaPipe**, **OpenCV**, and **YOLOv8 (pre-trained model with TensorFlow support)** for intelligent, hands-free interaction.
 
 
-Terminal command
+Terminal command:-
+
 .venv\Scripts\python.exe app.py
+
 .venv\Scripts\python.exe visiosense.py
 
 ---
